@@ -36,11 +36,15 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
           "s3:GetObject",
           "s3:PutObject",
           "s3:DeleteObject",
-          "s3:ListBucket"
+          "s3:ListBucket",
+          "dynamodb:PutItem",
+          "dynamodb:GetItem",
+          "dynamodb:UpdateItem"
         ]
         Resource = [
           aws_s3_bucket.laundry_alert.arn,
-          "${aws_s3_bucket.laundry_alert.arn}/*"
+          "${aws_s3_bucket.laundry_alert.arn}/*",
+          aws_dynamodb_table.laundry_events.arn
         ]
       }
     ]
@@ -67,6 +71,7 @@ resource "aws_lambda_function" "processor" {
   environment {
     variables = {
       BUCKET_NAME = aws_s3_bucket.laundry_alert.id
+      TABLE_NAME  = aws_dynamodb_table.laundry_events.name
     }
   }
 }
