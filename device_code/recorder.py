@@ -11,8 +11,8 @@ OUTPUT_DIR = "recordings"
 DEVICE = "plughw:0,0"  # Default device. Check 'arecord -l' to confirm.
                        # It might be plughw:1,0 if the onboard audio is enabled.
 
-# Server Configuration - REPLACE WITH YOUR LAPTOP'S IP ADDRESS
-SERVER_URL = "http://192.168.8.241:5000/upload" 
+# S3 Configuration
+S3_BUCKET_URL = "https://sundai-laundry-alert-us-east-1.s3.us-east-1.amazonaws.com/"
 
 def ensure_output_dir():
     if not os.path.exists(OUTPUT_DIR):
@@ -20,12 +20,15 @@ def ensure_output_dir():
         print(f"Created output directory: {OUTPUT_DIR}")
 
 def upload_file(filepath):
-    """Uploads the recorded file to the server."""
-    print(f"Attempting to upload {filepath} to {SERVER_URL}...")
+    """Uploads the recorded file to the S3 bucket."""
+    filename = os.path.basename(filepath)
+    url = f"{S3_BUCKET_URL}{filename}"
+    print(f"Attempting to upload {filepath} to {url}...")
+    
     try:
         with open(filepath, 'rb') as f:
-            files = {'file': f}
-            response = requests.post(SERVER_URL, files=files)
+            headers = {'Content-Type': 'audio/wav'}
+            response = requests.put(url, data=f, headers=headers)
             
         if response.status_code == 200:
             print(f"Successfully uploaded {filepath}")
@@ -36,13 +39,13 @@ def upload_file(filepath):
             print(response.text)
     except requests.exceptions.RequestException as e:
         print(f"Error uploading file: {e}")
-        print("Check if the server is running and the IP address is correct.")
+        print("Check your internet connection.")
 
 def record_audio():
     ensure_output_dir()
     
     print(f"Starting audio recording service. Recording {DURATION}s chunks to '{OUTPUT_DIR}/'...")
-    print(f"Upload target: {SERVER_URL}")
+    print(f"Upload target: {S3_BUCKET_URL}")
     
     try:
         while True:
