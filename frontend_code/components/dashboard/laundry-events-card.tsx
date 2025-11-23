@@ -15,6 +15,8 @@ interface LaundryEvent {
 	timestamp: string;
 	has_sound: boolean;
 	is_knocking: boolean;
+	is_speech?: boolean;
+	is_clapping?: boolean;
 	confidence: number;
 	processed_at: string;
 }
@@ -257,6 +259,50 @@ export function LaundryEventsCard() {
 													: "In Progress"}
 											</span>
 										</div>
+										{event.is_speech !== undefined && (
+											<div
+												className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+													event.is_speech
+														? "bg-blue-100 dark:bg-blue-900/20"
+														: "bg-gray-100 dark:bg-gray-800"
+												}`}>
+												<div
+													className={`h-2.5 w-2.5 rounded-full ${
+														event.is_speech
+															? "bg-blue-600"
+															: "bg-gray-400"
+													}`}
+												/>
+												<span className="font-medium">
+													Speech:{" "}
+													{event.is_speech
+														? "Yes"
+														: "No"}
+												</span>
+											</div>
+										)}
+										{event.is_clapping !== undefined && (
+											<div
+												className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+													event.is_clapping
+														? "bg-purple-100 dark:bg-purple-900/20"
+														: "bg-gray-100 dark:bg-gray-800"
+												}`}>
+												<div
+													className={`h-2.5 w-2.5 rounded-full ${
+														event.is_clapping
+															? "bg-purple-600"
+															: "bg-gray-400"
+													}`}
+												/>
+												<span className="font-medium">
+													Clapping:{" "}
+													{event.is_clapping
+														? "Yes"
+														: "No"}
+												</span>
+											</div>
+										)}
 									</div>
 									<p className="text-xs text-muted-foreground mt-2 font-mono">
 										{event.filename}
