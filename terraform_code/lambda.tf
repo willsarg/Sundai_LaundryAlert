@@ -47,28 +47,48 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
   })
 }
 
-# Package Lambda code
-data "archive_file" "lambda_processor" {
-  type        = "zip"
-  source_dir  = "${path.module}/lambdas/processor"
-  output_path = "${path.module}/lambdas/processor.zip"
+# Lambda layer for numpy and scipy
+resource "aws_lambda_layer_version" "scipy_numpy" {
+  filename            = "${path.module}/lambdas/scipy_numpy_layer.zip"
+  layer_name          = "scipy-numpy-layer"
+  compatible_runtimes = ["python3.11"]
+  source_code_hash    = filebase64sha256("${path.module}/lambdas/scipy_numpy_layer.zip")
+}
+
+# Build Lambda package with dependencies
+resource "null_resource" "build_lambda" {
+  triggers = {
+    requirements = filemd5("${path.module}/lambdas/processor/requirements.txt")
+    lambda_code  = sha256(join("", [for f in fileset("${path.module}/lambdas/processor", "*.py") : filesha256("${path.module}/lambdas/processor/${f}")]))
+  }
+
+  provisioner "local-exec" {
+    command = "${path.module}/build_lambda.sh"
+  }
 }
 
 # Lambda function
 resource "aws_lambda_function" "processor" {
-  filename         = data.archive_file.lambda_processor.output_path
+  filename         = "${path.module}/lambdas/processor_with_deps.zip"
   function_name    = "laundry-alert-processor"
   role             = aws_iam_role.lambda_exec.arn
   handler          = "lambda_function.lambda_handler"
-  source_code_hash = data.archive_file.lambda_processor.output_base64sha256
+  source_code_hash = filebase64sha256("${path.module}/lambdas/processor_with_deps.zip")
   runtime          = "python3.11"
   timeout          = 30
+
+  # Use custom Lambda layer for numpy and scipy
+  layers = [
+    aws_lambda_layer_version.scipy_numpy.arn
+  ]
 
   environment {
     variables = {
       BUCKET_NAME = aws_s3_bucket.laundry_alert.id
     }
   }
+
+  depends_on = [null_resource.build_lambda]
 }
 
 # Allow S3 to invoke Lambda
