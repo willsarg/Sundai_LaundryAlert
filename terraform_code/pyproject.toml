@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "laundry-alert-processor"
+version = "1.0.0"
+description = "AWS Lambda audio processor for laundry alert system"
+requires-python = ">=3.14"
+
+[tool.pytest.ini_options]
+# Test discovery
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# Coverage options
+addopts = [
+    "--cov=lambdas/processor",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-fail-under=100",
+    "--strict-markers",
+    "-v",
+]
+
+# Markers for categorizing tests
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "edge_case: Edge case tests",
+    "robustness: Robustness tests",
+]
+
+[tool.coverage.run]
+# What to measure
+source = ["lambdas/processor"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*",
+]
+
+# Branch coverage (more thorough than line coverage)
+branch = true
+
+[tool.coverage.report]
+# Reporting options
+precision = 2
+show_missing = true
+skip_covered = false
+skip_empty = true
+
+# Fail if coverage is below this threshold
+fail_under = 100.0
+
+# Exclude lines from coverage
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"

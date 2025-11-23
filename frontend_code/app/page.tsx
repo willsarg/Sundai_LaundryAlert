@@ -26,23 +26,21 @@ export default function DashboardPage() {
 					</div>
 				</header>
 
-				{/* Changed breakpoints from lg to md to keep layout consistent on smaller desktop/tablet screens. Removed unnecessary row-span classes. */}
-				<main className="grid gap-6 md:grid-cols-3 md:h-[calc(100vh-12rem)] md:min-h-[600px]">
-					{/* Central Monitor Card - Takes up 2/3 width */}
-					<div className="md:col-span-2 h-full">
-						<MonitorCard />
+				{/* Laundry Events Front and Center */}
+				<main className="space-y-6">
+					{/* Featured: Recent Events - Full width, prominent */}
+					<div className="w-full">
+						<LaundryEventsCard />
 					</div>
 
-					{/* Side Cards column */}
-					<div className="space-y-6 md:col-span-1 flex flex-col h-full">
-						<div className="flex-1">
+					{/* Secondary cards in grid below */}
+					<div className="grid gap-6 md:grid-cols-3">
+						<div className="md:col-span-2">
+							<MonitorCard />
+						</div>
+						<div className="space-y-6">
 							<SystemHealthCard />
-						</div>
-						<div className="flex-[1.5]">
 							<RecentActivityCard />
-						</div>
-						<div className="flex-[1.5]">
-							<LaundryEventsCard />
 						</div>
 					</div>
 				</main>
