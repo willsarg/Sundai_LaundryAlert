@@ -8,7 +8,7 @@ The system follows a serverless event-driven architecture:
 1.  **Ingestion**: Audio files (WAV) are uploaded to an S3 bucket.
 2.  **Trigger**: S3 Event Notifications trigger an AWS Lambda function.
 3.  **Processing**: The Lambda function (Python) downloads the file, analyzes it, and determines sound characteristics.
-4.  **Persistence**: Classification results are stored in DynamoDB.
+4.  **Persistence**: Classification results are posted to a public HTTP endpoint.
 5.  **Cleanup**: Source audio files are deleted via S3 Lifecycle Policy to maintain hygiene.
 
 ## 3. Infrastructure
@@ -18,7 +18,8 @@ The system follows a serverless event-driven architecture:
     *   Memory: TBD (Start with 128MB, scale if signal processing requires more).
     *   Timeout: 30s (per `lambda.tf`).
 *   **Storage**: AWS S3 (`sundai-laundry-alert-${var.region}`).
-*   **Database**: AWS DynamoDB (Table: `LaundryEvents` - *To be created*).
+*   **Storage**: AWS S3 (`sundai-laundry-alert-${var.region}`).
+*   **Reporting**: Public HTTP Endpoint.
 
 ## 4. Input Specifications
 *   **Format**: WAV audio files.
@@ -38,23 +39,20 @@ The classifier will use signal processing techniques (e.g., `scipy`, `numpy`) to
 *   **Logic**: Identify sharp, transient peaks in the audio signal. Analyze the interval between peaks to detect rhythmic knocking patterns typical of end-of-cycle laundry sounds.
 *   **Output**: `is_knocking = True/False`, `confidence = 0.0 - 1.0`.
 
-## 6. Data Schema (DynamoDB)
-**Infrastructure Resource**: `aws_dynamodb_table`
-*   **Table Name**: `LaundryEvents`
-*   **Billing Mode**: `PAY_PER_REQUEST` (On-Demand) - Best for variable workloads.
-*   **Partition Key**: `filename` (String)
-*   **Sort Key**: `timestamp` (String)
+## 6. Data Reporting (HTTP Endpoint)
+**Endpoint**: `https://main.do3lhk8wdr8hy.amplifyapp.com/api/laundry-events`
+**Method**: `POST`
+**Content-Type**: `application/json`
 
-The Lambda will write the following schema to DynamoDB:
+The Lambda will post the following schema to the endpoint:
 
 ```json
 {
-  "filename": "machine_1_1698400000.wav",  // Partition Key
-  "timestamp": "2023-10-27T10:00:00Z",      // Sort Key (or separate attribute)
+  "filename": "machine_1_1698400000.wav",
+  "timestamp": "2023-10-27T10:00:00Z",
   "has_sound": true,
   "is_knocking": false,
-  "confidence": 0.95,
-  "processed_at": "2023-10-27T10:00:05Z"
+  "confidence": 0.95
 }
 ```
 
@@ -81,7 +79,7 @@ Automated testing is a priority to ensure velocity.
     *   Mock S3 `ObjectCreated` event.
     *   Verify Lambda handler correctly parses the event.
     *   Verify file download from mocked S3.
-    *   Verify item put to mocked DynamoDB.
+    *   Verify HTTP POST request to endpoint.
     *   Verify source file deletion logic.
 
 ## 9. Deployment

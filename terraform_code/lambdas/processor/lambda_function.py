@@ -1,36 +1,94 @@
 import json
 import os
 import boto3
+import uuid
+import urllib.request
+from audio_processor import AudioProcessor
 
-s3_client = boto3.client("s3")
+# Lazy initialization
+_s3_client = None
+
+
+def get_s3_client():
+    global _s3_client
+    if not _s3_client:
+        _s3_client = boto3.client("s3")
+    return _s3_client
+
+
+def post_results(data):
+    url = "https://main.do3lhk8wdr8hy.amplifyapp.com/api/laundry-events"
+    headers = {"Content-Type": "application/json"}
+
+    # Ensure data types are JSON serializable
+    # The processor returns native python types, so json.dumps handles them.
+    # But just to be safe and match the spec exactly:
+    payload = {
+        "filename": data["filename"],
+        "timestamp": data["timestamp"],
+        "has_sound": bool(data["has_sound"]),
+        "is_knocking": bool(data["is_knocking"]),
+        "confidence": float(data["confidence"]),
+    }
+
+    req = urllib.request.Request(
+        url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST"
+    )
+
+    try:
+        with urllib.request.urlopen(req) as response:
+            print(f"Posted results. Status: {response.status}")
+            return response.status
+    except urllib.error.URLError as e:
+        print(f"Error posting results: {e}")
+        raise e
 
 
 def lambda_handler(event, context):
     """
     Lambda function triggered by S3 ObjectCreated events.
-    Replace this with your actual processing logic.
     """
     print(f"Received event: {json.dumps(event)}")
 
-    # Get bucket and object info from the event
+    s3 = get_s3_client()
+    processor = AudioProcessor()
+
     for record in event["Records"]:
         bucket = record["s3"]["bucket"]["name"]
         key = record["s3"]["object"]["key"]
 
         print(f"Processing file: s3://{bucket}/{key}")
 
-        # TODO: Add your processing logic here
-        # Example: Download the .wav file
-        # response = s3_client.get_object(Bucket=bucket, Key=key)
-        # audio_data = response['Body'].read()
+        try:
+            # Download file to /tmp
+            download_path = f"/tmp/{uuid.uuid4()}.wav"
+            s3.download_file(bucket, key, download_path)
 
-        # Process the audio data...
+            # Process
+            results = processor.process_audio(download_path)
+            print(f"Results for {key}: {results}")
 
-        # Example: Upload results back to S3
-        # s3_client.put_object(
-        #     Bucket=bucket,
-        #     Key=f"processed/{key}",
-        #     Body=processed_data
-        # )
+            # Prepare data for POST
+            data = {
+                "filename": key,
+                "timestamp": record["eventTime"],
+                "has_sound": results["has_sound"],
+                "is_knocking": results["is_knocking"],
+                "confidence": results["confidence"],
+            }
+
+            # Post to endpoint
+            post_results(data)
+
+            # Cleanup
+            if os.path.exists(download_path):
+                os.remove(download_path)
+
+        except Exception as e:
+            print(f"Error processing {key}: {e}")
+            # Continue processing other records? Or raise?
+            # For S3 batch, raising causes retry.
+            # Let's raise to ensure visibility.
+            raise e
 
     return {"statusCode": 200, "body": json.dumps("Processing complete")}
