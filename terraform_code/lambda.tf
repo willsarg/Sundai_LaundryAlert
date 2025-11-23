@@ -47,40 +47,50 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
   })
 }
 
-# Lambda layer for numpy and scipy
-resource "aws_lambda_layer_version" "scipy_numpy" {
-  filename            = "${path.module}/lambdas/scipy_numpy_layer.zip"
-  layer_name          = "scipy-numpy-layer"
-  compatible_runtimes = ["python3.11"]
-  source_code_hash    = filebase64sha256("${path.module}/lambdas/scipy_numpy_layer.zip")
-}
-
-# Build Lambda package with dependencies
-resource "null_resource" "build_lambda" {
+# Build Lambda package with dependencies (includes numpy and scipy)
+resource "null_resource" "build_lambda_full" {
   triggers = {
     requirements = filemd5("${path.module}/lambdas/processor/requirements.txt")
     lambda_code  = sha256(join("", [for f in fileset("${path.module}/lambdas/processor", "*.py") : filesha256("${path.module}/lambdas/processor/${f}")]))
   }
 
   provisioner "local-exec" {
-    command = "${path.module}/build_lambda.sh"
+    command = <<EOF
+      cd ${path.module}/lambdas
+      rm -rf build_full processor_full.zip
+      mkdir -p build_full
+      pip3 install --target build_full numpy scipy -q
+      cp processor/*.py build_full/
+      cd build_full
+      zip -q -r ../processor_full.zip .
+    EOF
+  }
+}
+
+# Upload Lambda package to S3
+resource "aws_s3_object" "lambda_package" {
+  bucket     = aws_s3_bucket.laundry_alert.id
+  key        = "lambda/processor_full.zip"
+  source     = "${path.module}/lambdas/processor_full.zip"
+  source_hash = filemd5("${path.module}/lambdas/processor_full.zip")
+
+  depends_on = [null_resource.build_lambda_full]
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
 # Lambda function
 resource "aws_lambda_function" "processor" {
-  filename         = "${path.module}/lambdas/processor_with_deps.zip"
+  s3_bucket        = aws_s3_bucket.laundry_alert.id
+  s3_key           = aws_s3_object.lambda_package.key
   function_name    = "laundry-alert-processor"
   role             = aws_iam_role.lambda_exec.arn
   handler          = "lambda_function.lambda_handler"
-  source_code_hash = filebase64sha256("${path.module}/lambdas/processor_with_deps.zip")
+  source_code_hash = filebase64sha256("${path.module}/lambdas/processor_full.zip")
   runtime          = "python3.11"
   timeout          = 30
-
-  # Use custom Lambda layer for numpy and scipy
-  layers = [
-    aws_lambda_layer_version.scipy_numpy.arn
-  ]
 
   environment {
     variables = {
@@ -88,7 +98,7 @@ resource "aws_lambda_function" "processor" {
     }
   }
 
-  depends_on = [null_resource.build_lambda]
+  depends_on = [aws_s3_object.lambda_package]
 }
 
 # Allow S3 to invoke Lambda

@@ -222,4 +222,8 @@ terraform.rc
 
 # Lambda build artifacts
 terraform_code/lambdas/*.zip
+terraform_code/lambdas/build/
+terraform_code/lambdas/build_full/
+terraform_code/lambdas/layer/
+terraform_code/lambdas/wheels/
 **/__pycache__/
