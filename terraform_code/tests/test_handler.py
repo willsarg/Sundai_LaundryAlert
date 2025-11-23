@@ -41,7 +41,9 @@ class TestLambdaHandler:
         mock_processor = MagicMock()
         mock_processor.process_audio.return_value = {
             "has_sound": True,
-            "is_knocking": False,
+            "is_clapping": False,
+            "is_speech": True,
+            "is_voice": True,
             "confidence": 0.95,
         }
         mock_processor_cls.return_value = mock_processor
@@ -94,5 +96,7 @@ class TestLambdaHandler:
         assert payload["filename"] == "test.wav"
         assert payload["timestamp"] == "2023-10-27T10:00:00Z"
         assert payload["has_sound"] is True
-        assert payload["is_knocking"] is False
+        assert payload["is_clapping"] is False
+        assert payload["is_speech"] is True
+        assert payload["is_voice"] is True
         assert payload["confidence"] == 0.95

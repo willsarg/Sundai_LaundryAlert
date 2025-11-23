@@ -34,10 +34,10 @@ The classifier will use signal processing techniques (e.g., `scipy`, `numpy`) to
 *   **Method**: Amplitude thresholding / RMS (Root Mean Square) energy calculation.
 *   **Logic**: If the average energy of the clip exceeds a defined threshold (noise floor), it is classified as `has_sound = True`.
 
-### 5.2. Knocking / No Knocking
+### 5.2. Clapping / No Clapping
 *   **Method**: Peak detection and rhythmic analysis.
-*   **Logic**: Identify sharp, transient peaks in the audio signal. Analyze the interval between peaks to detect rhythmic knocking patterns typical of end-of-cycle laundry sounds.
-*   **Output**: `is_knocking = True/False`, `confidence = 0.0 - 1.0`.
+*   **Logic**: Identify sharp, transient peaks in the audio signal. Analyze the interval between peaks to detect rhythmic patterns.
+*   **Output**: `is_clapping = True/False`, `confidence = 0.0 - 1.0`.
 
 ## 6. Data Reporting (HTTP Endpoint)
 **Endpoint**: `https://main.do3lhk8wdr8hy.amplifyapp.com/api/laundry-events`
@@ -51,7 +51,9 @@ The Lambda will post the following schema to the endpoint:
   "filename": "machine_1_1698400000.wav",
   "timestamp": "2023-10-27T10:00:00Z",
   "has_sound": true,
-  "is_knocking": false,
+  "is_clapping": false,
+  "is_speech": true,
+  "is_voice": true,
   "confidence": 0.95
 }
 ```

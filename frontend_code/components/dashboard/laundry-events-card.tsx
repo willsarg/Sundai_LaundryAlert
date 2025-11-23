@@ -1,13 +1,14 @@
 "use client";
 
-import {useEffect, useState} from "react";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface LaundryEvent {
 	filename: string;
 	timestamp: string;
 	has_sound: boolean;
-	is_knocking: boolean;
+	is_speech: boolean;
+	is_clapping: boolean;
 	confidence: number;
 	processed_at: string;
 }
@@ -71,9 +72,6 @@ export function LaundryEventsCard() {
 									key={`${event.filename}-${index}`}
 									className="border rounded-lg p-4 space-y-2">
 									<div className="flex items-center justify-between">
-										<span className="font-mono text-sm">
-											{event.filename}
-										</span>
 										<span className="text-xs text-muted-foreground">
 											{new Date(
 												event.timestamp
@@ -96,15 +94,30 @@ export function LaundryEventsCard() {
 										</div>
 										<div>
 											<span className="text-muted-foreground">
-												Knocking:{" "}
+												Speech:{" "}
 											</span>
 											<span
 												className={
-													event.is_knocking
+													event.is_speech
+														? "text-blue-600"
+														: "text-gray-500"
+												}>
+												{event.is_speech
+													? "Yes"
+													: "No"}
+											</span>
+										</div>
+										<div>
+											<span className="text-muted-foreground">
+												Clapping:{" "}
+											</span>
+											<span
+												className={
+													event.is_clapping
 														? "text-orange-600"
 														: "text-gray-500"
 												}>
-												{event.is_knocking
+												{event.is_clapping
 													? "Yes"
 													: "No"}
 											</span>

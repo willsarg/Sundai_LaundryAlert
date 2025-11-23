@@ -27,7 +27,9 @@ def post_results(data):
         "filename": data["filename"],
         "timestamp": data["timestamp"],
         "has_sound": bool(data["has_sound"]),
-        "is_knocking": bool(data["is_knocking"]),
+        "is_clapping": bool(data["is_clapping"]),
+        "is_speech": bool(data["is_speech"]),
+        "is_voice": bool(data["is_voice"]),
         "confidence": float(data["confidence"]),
     }
 
@@ -73,7 +75,9 @@ def lambda_handler(event, context):
                 "filename": key,
                 "timestamp": record["eventTime"],
                 "has_sound": results["has_sound"],
-                "is_knocking": results["is_knocking"],
+                "is_clapping": results["is_clapping"],
+                "is_speech": results["is_speech"],
+                "is_voice": results["is_voice"],
                 "confidence": results["confidence"],
             }
 

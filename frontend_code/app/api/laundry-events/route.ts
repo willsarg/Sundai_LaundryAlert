@@ -4,7 +4,9 @@ export interface LaundryEventPayload {
 	filename: string;
 	timestamp: string;
 	has_sound: boolean;
-	is_knocking: boolean;
+	is_speech: boolean;
+	is_voice: boolean;
+	is_clapping: boolean;
 	confidence: number;
 	processed_at?: string;
 }
@@ -27,10 +29,11 @@ export async function POST(request: NextRequest) {
 		// Validate types
 		if (
 			typeof body.has_sound !== "boolean" ||
-			typeof body.is_knocking !== "boolean"
+			typeof body.is_speech !== "boolean" ||
+			typeof body.is_clapping !== "boolean"
 		) {
 			return NextResponse.json(
-				{error: "has_sound and is_knocking must be boolean"},
+				{error: "has_sound, is_speech, and is_clapping must be boolean"},
 				{status: 400}
 			);
 		}
