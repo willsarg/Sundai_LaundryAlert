@@ -1,6 +1,7 @@
 import {MonitorCard} from "@/components/dashboard/monitor-card";
 import {SystemHealthCard} from "@/components/dashboard/system-health-card";
 import {RecentActivityCard} from "@/components/dashboard/recent-activity-card";
+import {LaundryEventsCard} from "@/components/dashboard/laundry-events-card";
 import {Settings} from "lucide-react";
 import {Button} from "@/components/ui/button";
 
@@ -39,6 +40,9 @@ export default function DashboardPage() {
 						</div>
 						<div className="flex-[1.5]">
 							<RecentActivityCard />
+						</div>
+						<div className="flex-[1.5]">
+							<LaundryEventsCard />
 						</div>
 					</div>
 				</main>
