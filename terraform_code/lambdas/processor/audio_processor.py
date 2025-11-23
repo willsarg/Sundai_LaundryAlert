@@ -208,19 +208,13 @@ class AudioProcessor:
                         is_speech = True
                         confidence = 0.8
 
-                # 3. Check for Clapping (if not speech)
-                if not is_speech:
-                    # Clapping logic: Short, high amplitude peaks
-                    # Peak threshold: significantly higher than background
-                    PEAK_THRESHOLD = 20000.0
-                    peaks = np.where(np.abs(data) > PEAK_THRESHOLD)[0]
-
-                    if len(peaks) > 0:
-                        # Check duration/density of peaks
-                        # Claps are short. If peaks are spread out over a long time, it might be noise?
-                        # But for now, simple peak detection as per previous logic + context
-                        is_clapping = True
-                        confidence = 0.9
+                # 3. Check for Clapping (detect regardless of speech)
+                PEAK_THRESHOLD = 15000.0
+                peaks = np.where(np.abs(data) > PEAK_THRESHOLD)[0]
+                if len(peaks) > 0:
+                    is_clapping = True
+                    # Prefer clapping confidence if higher
+                    confidence = max(confidence, 0.9)
 
             return {
                 "has_sound": bool(has_sound),
