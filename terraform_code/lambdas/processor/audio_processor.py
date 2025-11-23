@@ -208,13 +208,67 @@ class AudioProcessor:
                         is_speech = True
                         confidence = 0.8
 
-                # 3. Check for Clapping (detect regardless of speech)
+                # 3. Check for Clapping
+                # We treat clapping as transient, high-amplitude events.
+                # For non-speech signals we classify any strong peaks as clapping.
+                # For speech-like signals we only mark clapping when peak timing is irregular,
+                # so regular knocking patterns are not mislabeled as clapping.
                 PEAK_THRESHOLD = 15000.0
-                peaks = np.where(np.abs(data) > PEAK_THRESHOLD)[0]
-                if len(peaks) > 0:
-                    is_clapping = True
-                    # Prefer clapping confidence if higher
-                    confidence = max(confidence, 0.9)
+                abs_data = np.abs(data)
+                max_amp = float(np.max(abs_data))
+
+                if max_amp > PEAK_THRESHOLD:
+                    if not is_speech:
+                        # Non-speech with strong peaks → clapping
+                        is_clapping = True
+                        confidence = max(confidence, 0.9)
+                    else:
+                        # Speech-like signal with strong peaks: analyze peak timing.
+                        # Use a coarse windowed view to find loud events and measure
+                        # how irregular their spacing is.
+                        window_ms = 10
+                        window_size = int(rate * window_ms / 1000)
+
+                        # Use at least one window to avoid division edge cases
+                        num_windows = max(
+                            1, (len(abs_data) + window_size - 1) // window_size
+                        )
+                        loud_flags = []
+
+                        for w in range(num_windows):
+                            start = w * window_size
+                            end = start + window_size
+                            window = abs_data[start:end]
+                            loud_flags.append(float(np.max(window)) > PEAK_THRESHOLD)
+
+                        # Add a sentinel False so the final event is closed in-loop
+                        loud_flags.append(False)
+
+                        # Derive event times from contiguous loud windows
+                        event_times = []
+                        in_event = False
+                        start_idx = 0
+                        length = 0
+
+                        for idx, flag in enumerate(loud_flags):
+                            if flag:
+                                if not in_event:
+                                    in_event = True
+                                    start_idx = idx
+                                    length = 1
+                                else:
+                                    length += 1
+                            elif in_event:
+                                center = start_idx + length / 2.0
+                                event_times.append(center * window_ms / 1000.0)
+                                in_event = False
+
+                        intervals = np.diff(event_times)
+                        # Highly regular intervals (low std dev) are more
+                        # characteristic of knocking; irregular spacing suggests clapping.
+                        if intervals.size > 0 and float(np.std(intervals)) > 0.5:
+                            is_clapping = True
+                            confidence = max(confidence, 0.9)
 
             return {
                 "has_sound": bool(has_sound),
