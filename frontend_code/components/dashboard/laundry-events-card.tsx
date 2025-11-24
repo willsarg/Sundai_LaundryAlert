@@ -167,8 +167,8 @@ export function LaundryEventsCard() {
 													{event.is_knocking
 														? "🧺 Laundry Cycle Complete!"
 														: event.has_sound
-														? "🔄 Washer Running"
-														: "💤 Machine Idle"}
+														? "🔄 Classifying Sound"
+														: "💤 Classification Idle"}
 												</p>
 												<p className="text-xs text-muted-foreground">
 													{new Date(
