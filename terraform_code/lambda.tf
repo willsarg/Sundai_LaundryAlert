@@ -57,11 +57,14 @@ resource "null_resource" "build_lambda_full" {
   provisioner "local-exec" {
     command = <<EOF
       cd ${path.module}/lambdas
-      rm -rf build_full processor_full.zip
-      mkdir -p build_full
-      pip3 install --target build_full numpy scipy -q
-      cp processor/*.py build_full/
-      cd build_full
+      rm -rf build_full processor_full.zip wheels
+      mkdir -p build_full wheels
+      cd wheels
+      pip3 download numpy scipy --only-binary=:all: --platform manylinux2014_x86_64 --python-version 311 -q
+      cd ../build_full
+      for wheel in ../wheels/*.whl; do unzip -q "$wheel"; done
+      rm -rf *.dist-info
+      cp ../processor/*.py .
       zip -q -r ../processor_full.zip .
     EOF
   }
