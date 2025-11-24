@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 import scipy.io.wavfile as wav
 import os
+import audio_processor as audio_module
 from audio_processor import AudioProcessor
 
 
@@ -89,3 +90,32 @@ class TestAudioProcessor:
         # Clapping might be false or true depending on peaks, but speech should take precedence in our logic?
         # Actually our logic says if is_speech, we don't check clapping.
         assert result["is_clapping"] is False
+
+    def test_speech_ratio_below_threshold_does_not_flag_speech(
+        self, audio_processor, tmp_path, monkeypatch
+    ):
+        class FakeDetector:
+            def __init__(self, sample_rate):
+                self.sample_rate = sample_rate
+                self.chunk_size = 1
+                self.max_calibration_frames = 0
+                self._counter = 0
+
+            def process_chunk(self, chunk):
+                self._counter += 1
+                return self._counter == 1
+
+        monkeypatch.setattr(audio_module, "VoiceDetector", FakeDetector)
+
+        rate = 44100
+        # 50 samples with modest amplitude ensure has_sound is True
+        data = np.full(50, 200, dtype=np.int16)
+
+        filepath = os.path.join(tmp_path, "low_ratio_speech.wav")
+        self.create_wav_file(filepath, rate, data)
+
+        result = audio_processor.process_audio(filepath)
+        assert result["has_sound"] is True
+        # Speech is detected in only a tiny fraction of valid frames,
+        # so it should not be classified as speech.
+        assert result["is_speech"] is False
