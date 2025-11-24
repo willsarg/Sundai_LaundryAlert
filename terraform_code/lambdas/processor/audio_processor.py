@@ -197,16 +197,24 @@ class AudioProcessor:
                         speech_detected_frames += 1
                     total_processed_frames += 1
 
-                # If we detected speech in a significant portion of the file (after calibration)
-                # or if the final state was speaking.
-                # Let's use a simple heuristic: if we were speaking for > 10% of non-calibration frames
-                valid_frames = total_processed_frames - detector.max_calibration_frames
-                if valid_frames > 0:
+                # Consider only frames after initial calibration when deciding on speech.
+                valid_frames = max(
+                    0, total_processed_frames - detector.max_calibration_frames
+                )
+                if valid_frames > 0 and speech_detected_frames > 0:
+                    # Require speech to occupy a meaningful portion of the clip so that
+                    # sparse, transient peaks (e.g., claps) are not treated as speech.
+                    speech_ratio = speech_detected_frames / float(valid_frames)
+                    MIN_SPEECH_RATIO = 0.1
+                    MIN_SPEECH_FRAMES = 5
+
                     if (
-                        speech_detected_frames > 0
-                    ):  # Any speech detected is good enough for now
+                        speech_ratio >= MIN_SPEECH_RATIO
+                        and speech_detected_frames >= MIN_SPEECH_FRAMES
+                    ):
                         is_speech = True
-                        confidence = 0.8
+                        # Scale confidence modestly with speech ratio while keeping it bounded.
+                        confidence = max(confidence, min(0.9, 0.5 + speech_ratio))
 
                 # 3. Check for Clapping
                 # We treat clapping as transient, high-amplitude events.
@@ -268,6 +276,10 @@ class AudioProcessor:
                         # characteristic of knocking; irregular spacing suggests clapping.
                         if intervals.size > 0 and float(np.std(intervals)) > 0.5:
                             is_clapping = True
+                            # For patterns we positively identify as clapping, do not
+                            # also report them as speech/voice. This ensures pure
+                            # clapping is not misclassified as speech.
+                            is_speech = False
                             confidence = max(confidence, 0.9)
 
             return {

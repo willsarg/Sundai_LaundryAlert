@@ -28,8 +28,9 @@ class TestAudioProcessorWithRealSamples:
         result = processor.process_audio(filepath)
         assert result["has_sound"] is True
         assert result["is_clapping"] is True
-        # Speech detection may also be true, but clapping is the key indicator
-        assert isinstance(result["is_speech"], bool)
+        # Pure clapping should not be classified as speech/voice
+        assert result["is_speech"] is False
+        assert result["is_voice"] is False
         assert isinstance(result["confidence"], float)
 
     def test_knocking_true_positive(self, processor):
