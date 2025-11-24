@@ -1,1 +1,1 @@
-# Sundai_LaundryAlert Alpha 1
+# Sundai_LaundryAlert Release 1
